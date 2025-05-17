@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Platos y Agregados</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKHpNnP4RM7QV0qaDiXveRpKpXihhsEdE",
+      authDomain: "pedidosrestaurante-56a61.firebaseapp.com",
+      projectId: "pedidosrestaurante-56a61",
+      storageBucket: "pedidosrestaurante-56a61.firebasestorage.app",
+      messagingSenderId: "316746718579",
+      appId: "1:316746718579:web:1f9d1578d72f7bc1f83906"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const formPrincipal = document.getElementById("formPrincipal");
+    const formAgregado = document.getElementById("formAgregado");
+    const listaPrincipales = document.getElementById("listaPrincipales");
+    const listaAgregados = document.getElementById("listaAgregados");
+
+    const colPrincipales = collection(db, "platosPrincipales");
+    const colAgregados = collection(db, "agregados");
+
+    formPrincipal.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("nombrePrincipal").value;
+      const precio = parseInt(document.getElementById("precioPrincipal").value);
+      await addDoc(colPrincipales, { nombre, precio });
+      formPrincipal.reset();
+      cargarDatos();
+    });
+
+    formAgregado.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nombre = document.getElementById("nombreAgregado").value;
+      await addDoc(colAgregados, { nombre });
+      formAgregado.reset();
+      cargarDatos();
+    });
+
+    async function cargarDatos() {
+      listaPrincipales.innerHTML = "";
+      listaAgregados.innerHTML = "";
+
+      const snapP = await getDocs(colPrincipales);
+      snapP.forEach((docSnap) => {
+        const data = docSnap.data();
+        const li = document.createElement("li");
+        li.className = "flex justify-between items-center bg-white p-2 shadow mb-2 rounded";
+        li.innerHTML = `
+          <span>${data.nombre} - $${data.precio}</span>
+          <button onclick="eliminarDato('platosPrincipales', '${docSnap.id}')" class="text-red-500 hover:text-red-700">Eliminar</button>
+        `;
+        listaPrincipales.appendChild(li);
+      });
+
+      const snapA = await getDocs(colAgregados);
+      snapA.forEach((docSnap) => {
+        const data = docSnap.data();
+        const li = document.createElement("li");
+        li.className = "flex justify-between items-center bg-white p-2 shadow mb-2 rounded";
+        li.innerHTML = `
+          <span>${data.nombre}</span>
+          <button onclick="eliminarDato('agregados', '${docSnap.id}')" class="text-red-500 hover:text-red-700">Eliminar</button>
+        `;
+        listaAgregados.appendChild(li);
+      });
+    }
+
+    window.eliminarDato = async (col, id) => {
+      await deleteDoc(doc(db, col, id));
+      cargarDatos();
+    };
+
+    cargarDatos();
+  </script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+  <div class="max-w-3xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6 text-center">Panel de Platos Principales y Agregados</h1>
+
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold mb-2">Platos Principales</h2>
+      <form id="formPrincipal" class="flex flex-col sm:flex-row gap-2 mb-4">
+        <input id="nombrePrincipal" type="text" placeholder="Nombre del plato" class="flex-1 p-2 border rounded" required>
+        <input id="precioPrincipal" type="number" placeholder="Precio" class="w-32 p-2 border rounded" required>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Agregar</button>
+      </form>
+      <ul id="listaPrincipales"></ul>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-semibold mb-2">Agregados</h2>
+      <form id="formAgregado" class="flex flex-col sm:flex-row gap-2 mb-4">
+        <input id="nombreAgregado" type="text" placeholder="Nombre del agregado" class="flex-1 p-2 border rounded" required>
+        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">Agregar</button>
+      </form>
+      <ul id="listaAgregados"></ul>
+    </div>
+  </div>
+</body>
+</html>
