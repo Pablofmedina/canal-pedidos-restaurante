@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Completo del Menú</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKHpNnP4RM7QV0qaDiXveRpKpXihhsEdE",
+      authDomain: "pedidosrestaurante-56a61.firebaseapp.com",
+      projectId: "pedidosrestaurante-56a61",
+      storageBucket: "pedidosrestaurante-56a61.firebasestorage.app",
+      messagingSenderId: "316746718579",
+      appId: "1:316746718579:web:1f9d1578d72f7bc1f83906"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const secciones = [
+      { id: "platosPrincipales", nombre: "Platos Principales", precio: true },
+      { id: "agregados", nombre: "Agregados", precio: false },
+      { id: "bebidas", nombre: "Bebidas", precio: true },
+      { id: "ensaladas", nombre: "Ensaladas", precio: true },
+      { id: "postres", nombre: "Postres", precio: true }
+    ];
+
+    secciones.forEach(({ id, precio }) => cargarSeccion(id, precio));
+
+    async function cargarSeccion(seccionId, conPrecio) {
+      const lista = document.getElementById(`lista-${seccionId}`);
+      const form = document.getElementById(`form-${seccionId}`);
+      const colRef = collection(db, seccionId);
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const nombre = document.getElementById(`nombre-${seccionId}`).value;
+        const precio = conPrecio ? parseInt(document.getElementById(`precio-${seccionId}`).value) : null;
+        await addDoc(colRef, { nombre, ...(conPrecio && { precio }) });
+        form.reset();
+        render();
+      });
+
+      async function render() {
+        lista.innerHTML = "";
+        const snap = await getDocs(colRef);
+        snap.forEach((docSnap) => {
+          const data = docSnap.data();
+          const li = document.createElement("li");
+          li.className = "flex justify-between items-center bg-white p-2 shadow mb-2 rounded";
+          li.innerHTML = `
+            <span>${data.nombre}${conPrecio ? ` - $${data.precio}` : ""}</span>
+            <button onclick="eliminarDato('${seccionId}', '${docSnap.id}')" class="text-red-500 hover:text-red-700">Eliminar</button>
+          `;
+          lista.appendChild(li);
+        });
+      }
+
+      render();
+    }
+
+    window.eliminarDato = async (col, id) => {
+      await deleteDoc(doc(db, col, id));
+      location.reload();
+    };
+  </script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+  <div class="max-w-4xl mx-auto p-6">
+    <h1 class="text-2xl font-bold mb-6 text-center">Panel Completo del Menú</h1>
+
+    <!-- Sección dinámica por colección -->
+    ${['platosPrincipales', 'agregados', 'bebidas', 'ensaladas', 'postres'].map(id => `
+      <div class="mb-10">
+        <h2 class="text-xl font-semibold mb-2 capitalize">${id.replace(/([A-Z])/g, ' $1')}</h2>
+        <form id="form-${id}" class="flex flex-col sm:flex-row gap-2 mb-4">
+          <input id="nombre-${id}" type="text" placeholder="Nombre" class="flex-1 p-2 border rounded" required>
+          ${id !== 'agregados' ? `<input id="precio-${id}" type="number" placeholder="Precio" class="w-32 p-2 border rounded" required>` : ''}
+          <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Agregar</button>
+        </form>
+        <ul id="lista-${id}" class="space-y-2"></ul>
+      </div>
+    `).join('')}
+  </div>
+</body>
+</html>
